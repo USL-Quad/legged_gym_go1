@@ -46,13 +46,17 @@ class Go1FlatCfg( Go1RoughCfg ):
         class scales ( Go1RoughCfg.rewards.scales ):
             orientation = -5.0
             torques = -0.000025
-            feet_air_time = 2.
+            feet_air_time = 1.
             # feet_contact_forces = -0.01
     
     class commands( Go1RoughCfg.commands ):
+        curriculum = True
+        max_curriculum  = 2.
         heading_command = False
         resampling_time = 4.
         class ranges( Go1RoughCfg.commands.ranges ):
+            lin_vel_x = [-1.0, 1.0] # min max [m/s]
+            lin_vel_y = [-1.0, 1.0]   # min max [m/s]
             ang_vel_yaw = [-1.5, 1.5]
 
     class domain_rand( Go1RoughCfg.domain_rand ):
