@@ -32,7 +32,7 @@ from legged_gym.envs import Go1RoughCfg, Go1RoughCfgPPO
 
 class Go1FlatCfg( Go1RoughCfg ):
     class env( Go1RoughCfg.env ):
-        num_observations = 48
+        num_observations = 45
   
     class terrain( Go1RoughCfg.terrain ):
         mesh_type = 'plane'
@@ -69,6 +69,6 @@ class Go1FlatCfgPPO( Go1RoughCfgPPO ):
 
     class runner ( Go1RoughCfgPPO.runner):
         run_name = ''
-        experiment_name = 'flat_anymal_c'
+        experiment_name = 'flat_go1'
         load_run = -1
-        max_iterations = 300
+        max_iterations = 30000
