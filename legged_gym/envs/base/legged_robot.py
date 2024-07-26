@@ -210,7 +210,7 @@ class LeggedRobot(BaseTask):
         """ Computes observations
         """
         # 3+3+3+3+12+12+12+17*11=48+187=235
-        self.obs_buf = torch.cat((  self.base_lin_vel * self.obs_scales.lin_vel,
+        self.obs_buf = torch.cat((  # self.base_lin_vel * self.obs_scales.lin_vel, TODO:无法获得，先不使用这个量
                                     self.base_ang_vel  * self.obs_scales.ang_vel,
                                     self.projected_gravity,
                                     self.commands[:, :3] * self.commands_scale,
