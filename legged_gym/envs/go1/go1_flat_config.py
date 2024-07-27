@@ -62,7 +62,8 @@ class Go1FlatCfg( LeggedRobotCfg ):
 
     class control( LeggedRobotCfg.control ):
         # PD Drive parameters:
-        control_type = 'actuator_net'
+        # control_type = 'actuator_net'
+        control_type = 'P'
         stiffness = {'joint': 40.0}  # [N*m/rad]
         damping = {'joint': 1.0}     # [N*m*s/rad]
         # action scale: target angle = actionScale * action + defaultAngle
