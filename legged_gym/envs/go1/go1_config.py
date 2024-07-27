@@ -57,6 +57,7 @@ class Go1RoughCfg( LeggedRobotCfg ):
         damping = {'joint': 1.0}     # [N*m*s/rad]
         # action scale: target angle = actionScale * action + defaultAngle
         action_scale = 0.25
+        hip_scale_reduction = 0.5
         # decimation: Number of control action updates @ sim DT per policy DT
         decimation = 4
         actuator_net_file = "{LEGGED_GYM_ROOT_DIR}/resources/actuator_nets/unitree_go1.pt"
@@ -75,6 +76,10 @@ class Go1RoughCfg( LeggedRobotCfg ):
         class scales( LeggedRobotCfg.rewards.scales ):
             torques = -0.0002
             dof_pos_limits = -10.0
+
+    class domain_rand( LeggedRobotCfg.domain_rand ):
+        randomize_lag_timesteps = False
+        lag_timesteps = 6
 
 
 class Go1RoughCfgPPO( LeggedRobotCfgPPO ):
