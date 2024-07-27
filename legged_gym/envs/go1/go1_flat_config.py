@@ -28,54 +28,94 @@
 #
 # Copyright (c) 2021 ETH Zurich, Nikita Rudin
 
-from legged_gym.envs import Go1RoughCfg, Go1RoughCfgPPO
+from legged_gym.envs.base.legged_robot_config import LeggedRobotCfg, LeggedRobotCfgPPO
 
-class Go1FlatCfg( Go1RoughCfg ):
-    class env( Go1RoughCfg.env ):
+class Go1FlatCfg( LeggedRobotCfg ):
+    class env( LeggedRobotCfg.env ):
         num_observations = 45
-  
-    class terrain( Go1RoughCfg.terrain ):
+    
+    class init_state( LeggedRobotCfg.init_state ):
+        pos = [0.0, 0.0, 0.42] # x,y,z [m]
+        default_joint_angles = { # = target angles [rad] when action = 0.0
+            'FL_hip_joint': 0.1,   # [rad]
+            'RL_hip_joint': 0.1,   # [rad]
+            'FR_hip_joint': -0.1 ,  # [rad]
+            'RR_hip_joint': -0.1,   # [rad]
+
+            'FL_thigh_joint': 0.8,     # [rad]
+            'RL_thigh_joint': 1.,   # [rad]
+            'FR_thigh_joint': 0.8,     # [rad]
+            'RR_thigh_joint': 1.,   # [rad]
+
+            'FL_calf_joint': -1.5,   # [rad]
+            'RL_calf_joint': -1.5,    # [rad]
+            'FR_calf_joint': -1.5,  # [rad]
+            'RR_calf_joint': -1.5,    # [rad]
+        }
+
+    class terrain( LeggedRobotCfg.terrain ):
         mesh_type = 'plane'
         measure_heights = False
   
-    class asset( Go1RoughCfg.asset ):
+    class asset( LeggedRobotCfg.asset ):
         self_collisions = 0 # 1 to disable, 0 to enable...bitwise filter
 
-    class control( Go1RoughCfg.control ):
-        use_actuator_network = True
+    class control( LeggedRobotCfg.control ):
+        # PD Drive parameters:
+        control_type = 'actuator_net'
+        stiffness = {'joint': 40.0}  # [N*m/rad]
+        damping = {'joint': 1.0}     # [N*m*s/rad]
+        # action scale: target angle = actionScale * action + defaultAngle
+        action_scale = 0.25
+        hip_scale_reduction = 0.5
+        # decimation: Number of control action updates @ sim DT per policy DT
+        decimation = 4
         actuator_net_file = "{LEGGED_GYM_ROOT_DIR}/resources/actuator_nets/unitree_go1.pt"
 
-    class rewards( Go1RoughCfg.rewards ):
+    class asset( LeggedRobotCfg.asset ):
+        file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/go1/urdf/go1.urdf'
+        name = "go1"
+        foot_name = "foot"
+        penalize_contacts_on = ["thigh", "calf"]
+        terminate_after_contacts_on = ["base"]
+        self_collisions = 1 # 1 to disable, 0 to enable...bitwise filter
+
+    class rewards( LeggedRobotCfg.rewards ):
         max_contact_force = 350.
-        class scales ( Go1RoughCfg.rewards.scales ):
+        soft_dof_pos_limit = 0.9
+        base_height_target = 0.3
+        class scales ( LeggedRobotCfg.rewards.scales ):
             orientation = -5.0
             torques = -0.000025
             feet_air_time = 1.
+            dof_pos_limits = -10.0
             # feet_contact_forces = -0.01
     
-    class commands( Go1RoughCfg.commands ):
+    class commands( LeggedRobotCfg.commands ):
         curriculum = True
         max_curriculum  = 2.
         heading_command = False
         resampling_time = 4.
-        class ranges( Go1RoughCfg.commands.ranges ):
+        class ranges( LeggedRobotCfg.commands.ranges ):
             lin_vel_x = [-1.0, 1.0] # min max [m/s]
             lin_vel_y = [-1.0, 1.0]   # min max [m/s]
             ang_vel_yaw = [-1.5, 1.5]
 
-    class domain_rand( Go1RoughCfg.domain_rand ):
+    class domain_rand( LeggedRobotCfg.domain_rand ):
         friction_range = [0., 1.5] # on ground planes the friction combination mode is averaging, i.e total friction = (foot_friction + 1.)/2.
-
-class Go1FlatCfgPPO( Go1RoughCfgPPO ):
-    class policy( Go1RoughCfgPPO.policy ):
+        randomize_lag_timesteps = False
+        lag_timesteps = 6
+        
+class Go1FlatCfgPPO( LeggedRobotCfgPPO ):
+    class policy( LeggedRobotCfgPPO.policy ):
         actor_hidden_dims = [128, 64, 32]
         critic_hidden_dims = [128, 64, 32]
         activation = 'elu' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
 
-    class algorithm( Go1RoughCfgPPO.algorithm):
+    class algorithm( LeggedRobotCfgPPO.algorithm):
         entropy_coef = 0.01
 
-    class runner ( Go1RoughCfgPPO.runner):
+    class runner ( LeggedRobotCfgPPO.runner):
         run_name = ''
         experiment_name = 'flat_go1'
         load_run = -1
