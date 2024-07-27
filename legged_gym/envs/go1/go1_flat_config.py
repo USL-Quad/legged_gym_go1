@@ -82,9 +82,6 @@ class Go1FlatCfg( LeggedRobotCfg ):
         self_collisions = 1 # 1 to disable, 0 to enable...bitwise filter
 
     class rewards( LeggedRobotCfg.rewards ):
-        max_contact_force = 350.
-        soft_dof_pos_limit = 0.9
-        base_height_target = 0.3
         class scales ( LeggedRobotCfg.rewards.scales ):
             termination = -0.0
             tracking_lin_vel = 1.0
@@ -94,13 +91,14 @@ class Go1FlatCfg( LeggedRobotCfg ):
             orientation = -0.2
             dof_acc = -2.5e-7
             base_height = -1.0
-            foot_clearance = -0.01
+            foot_clearance = -0.1
             collision = -1.
+            dof_pos_limits = -10.0
             feet_stumble = -0.0 
             action_rate = -0.01
             smoothness = -0.01
             stand_still = -0.
-            torques = -0.
+            torques = -0.00001
             dof_vel = -0.
             feet_air_time =  0.
         only_positive_rewards = False # if true negative total rewards are clipped at zero (avoids early termination problems)
@@ -108,7 +106,7 @@ class Go1FlatCfg( LeggedRobotCfg ):
         soft_dof_pos_limit = 1. # percentage of urdf limits, values above this limit are penalized
         soft_dof_vel_limit = 1.
         soft_torque_limit = 1.
-        base_height_target = 0.3
+        base_height_target = 0.28
         max_contact_force = 100. # forces above this value are penalized
         clearance_height_target = -0.20
 
