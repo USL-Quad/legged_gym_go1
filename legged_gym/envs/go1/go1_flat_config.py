@@ -85,12 +85,32 @@ class Go1FlatCfg( LeggedRobotCfg ):
         soft_dof_pos_limit = 0.9
         base_height_target = 0.3
         class scales ( LeggedRobotCfg.rewards.scales ):
-            orientation = -5.0
-            torques = -0.000025
-            feet_air_time = 1.
-            dof_pos_limits = -10.0
-            # feet_contact_forces = -0.01
-    
+            termination = -0.0
+            tracking_lin_vel = 1.0
+            tracking_ang_vel = 0.5
+            lin_vel_z = -2.0
+            ang_vel_xy = -0.05
+            orientation = -0.2
+            dof_acc = -2.5e-7
+            base_height = -1.0
+            foot_clearance = -0.01
+            collision = -1.
+            feet_stumble = -0.0 
+            action_rate = -0.01
+            smoothness = -0.01
+            stand_still = -0.
+            torques = -0.
+            dof_vel = -0.
+            feet_air_time =  0.
+        only_positive_rewards = False # if true negative total rewards are clipped at zero (avoids early termination problems)
+        tracking_sigma = 0.25 # tracking reward = exp(-error^2/sigma)
+        soft_dof_pos_limit = 1. # percentage of urdf limits, values above this limit are penalized
+        soft_dof_vel_limit = 1.
+        soft_torque_limit = 1.
+        base_height_target = 0.3
+        max_contact_force = 100. # forces above this value are penalized
+        clearance_height_target = -0.20
+
     class commands( LeggedRobotCfg.commands ):
         curriculum = True
         max_curriculum  = 2.
@@ -105,7 +125,7 @@ class Go1FlatCfg( LeggedRobotCfg ):
         friction_range = [0., 1.5] # on ground planes the friction combination mode is averaging, i.e total friction = (foot_friction + 1.)/2.
         randomize_lag_timesteps = False
         lag_timesteps = 6
-        
+
 class Go1FlatCfgPPO( LeggedRobotCfgPPO ):
     class policy( LeggedRobotCfgPPO.policy ):
         actor_hidden_dims = [128, 64, 32]
