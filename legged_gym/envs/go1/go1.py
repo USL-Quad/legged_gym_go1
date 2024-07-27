@@ -63,6 +63,8 @@ class Go1(LeggedRobot):
         # self.sea_hidden_state_per_env = self.sea_hidden_state.view(2, self.num_envs, self.num_actions, 8)
         # self.sea_cell_state_per_env = self.sea_cell_state.view(2, self.num_envs, self.num_actions, 8)
 
+        self.feet_pos = self.rigid_body_states.view(self.num_envs, self.num_bodies, 13)[:, self.feet_indices, 0:3]
+        self.feet_vel = self.rigid_body_states.view(self.num_envs, self.num_bodies, 13)[:, self.feet_indices, 7:10]
 
         self.lag_buffer = [torch.zeros_like(self.dof_pos) for i in range(self.cfg.domain_rand.lag_timesteps+1)]
         self.last_last_actions = torch.zeros(self.num_envs, self.num_actions, dtype=torch.float, device=self.device,
@@ -98,6 +100,11 @@ class Go1(LeggedRobot):
             self.joint_vel_last = torch.zeros((self.num_envs, 12), device=self.device)
 
 
+    def post_physics_step(self):
+        super().post_physics_step()
+        self.feet_pos = self.rigid_body_states.view(self.num_envs, self.num_bodies, 13)[:, self.feet_indices, 0:3]
+        self.feet_vel = self.rigid_body_states.view(self.num_envs, self.num_bodies, 13)[:, self.feet_indices, 7:10]
+        
     def _compute_torques(self, actions):
         # pd controller
         actions_scaled = actions[:, :12] * self.cfg.control.action_scale
