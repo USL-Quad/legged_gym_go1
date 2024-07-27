@@ -48,22 +48,6 @@ class Go1(LeggedRobot):
     def __init__(self, cfg, sim_params, physics_engine, sim_device, headless):
         super().__init__(cfg, sim_params, physics_engine, sim_device, headless)
 
-        # load actuator network
-        if self.cfg.control.use_actuator_network:
-            actuator_network_path = self.cfg.control.actuator_net_file.format(LEGGED_GYM_ROOT_DIR=LEGGED_GYM_ROOT_DIR)
-            actuator_network = torch.jit.load(actuator_network_path).to(self.device)
-            def eval_actuator_network(joint_pos, joint_pos_last, joint_pos_last_last, joint_vel, joint_vel_last,
-                                      joint_vel_last_last):
-                xs = torch.cat((joint_pos.unsqueeze(-1),
-                                joint_pos_last.unsqueeze(-1),
-                                joint_pos_last_last.unsqueeze(-1),
-                                joint_vel.unsqueeze(-1),
-                                joint_vel_last.unsqueeze(-1),
-                                joint_vel_last_last.unsqueeze(-1)), dim=-1)
-                torques = actuator_network(xs.view(self.num_envs * 12, 6))
-                return torques.view(self.num_envs, 12)
-            self.actuator_network = eval_actuator_network
-
     def reset_idx(self, env_ids):
         super().reset_idx(env_ids)
         # Additionaly empty actuator network hidden states
@@ -79,14 +63,55 @@ class Go1(LeggedRobot):
         # self.sea_hidden_state_per_env = self.sea_hidden_state.view(2, self.num_envs, self.num_actions, 8)
         # self.sea_cell_state_per_env = self.sea_cell_state.view(2, self.num_envs, self.num_actions, 8)
 
-        self.joint_pos_err_last_last = torch.zeros((self.num_envs, 12), device=self.device)
-        self.joint_pos_err_last = torch.zeros((self.num_envs, 12), device=self.device)
-        self.joint_vel_last_last = torch.zeros((self.num_envs, 12), device=self.device)
-        self.joint_vel_last = torch.zeros((self.num_envs, 12), device=self.device)
+
+        self.lag_buffer = [torch.zeros_like(self.dof_pos) for i in range(self.cfg.domain_rand.lag_timesteps+1)]
+        self.last_last_actions = torch.zeros(self.num_envs, self.num_actions, dtype=torch.float, device=self.device,
+                                             requires_grad=False)
+        self.joint_pos_target = torch.zeros(self.num_envs, self.num_dof, dtype=torch.float,
+                                            device=self.device,
+                                            requires_grad=False)
+        self.last_joint_pos_target = torch.zeros(self.num_envs, self.num_dof, dtype=torch.float, device=self.device,
+                                                 requires_grad=False)
+        self.last_last_joint_pos_target = torch.zeros(self.num_envs, self.num_dof, dtype=torch.float,
+                                                      device=self.device,
+                                                      requires_grad=False)
+        if self.cfg.control.control_type == "actuator_net":
+            actuator_path = f'{os.path.dirname(os.path.dirname(os.path.realpath(__file__)))}/../../resources/actuator_nets/unitree_go1.pt'
+            actuator_network = torch.jit.load(actuator_path).to(self.device)
+
+            def eval_actuator_network(joint_pos, joint_pos_last, joint_pos_last_last, joint_vel, joint_vel_last,
+                                      joint_vel_last_last):
+                xs = torch.cat((joint_pos.unsqueeze(-1),
+                                joint_pos_last.unsqueeze(-1),
+                                joint_pos_last_last.unsqueeze(-1),
+                                joint_vel.unsqueeze(-1),
+                                joint_vel_last.unsqueeze(-1),
+                                joint_vel_last_last.unsqueeze(-1)), dim=-1)
+                torques = actuator_network(xs.view(self.num_envs * 12, 6))
+                return torques.view(self.num_envs, 12)
+
+            self.actuator_network = eval_actuator_network
+
+            self.joint_pos_err_last_last = torch.zeros((self.num_envs, 12), device=self.device)
+            self.joint_pos_err_last = torch.zeros((self.num_envs, 12), device=self.device)
+            self.joint_vel_last_last = torch.zeros((self.num_envs, 12), device=self.device)
+            self.joint_vel_last = torch.zeros((self.num_envs, 12), device=self.device)
+
 
     def _compute_torques(self, actions):
-        # Choose between pd controller and actuator network
-        if self.cfg.control.use_actuator_network:
+        # pd controller
+        actions_scaled = actions[:, :12] * self.cfg.control.action_scale
+        actions_scaled[:, [0, 3, 6, 9]] *= self.cfg.control.hip_scale_reduction  # scale down hip flexion range
+
+        if self.cfg.domain_rand.randomize_lag_timesteps:
+            self.lag_buffer = self.lag_buffer[1:] + [actions_scaled.clone()]
+            self.joint_pos_target = self.lag_buffer[0] + self.default_dof_pos
+        else:
+            self.joint_pos_target = actions_scaled + self.default_dof_pos
+
+        control_type = self.cfg.control.control_type
+
+        if control_type == "actuator_net":
             self.joint_pos_err = self.dof_pos - self.joint_pos_target + self.motor_offsets
             self.joint_vel = self.dof_vel
             torques = self.actuator_network(self.joint_pos_err, self.joint_pos_err_last, self.joint_pos_err_last_last,
@@ -95,7 +120,11 @@ class Go1(LeggedRobot):
             self.joint_pos_err_last = torch.clone(self.joint_pos_err)
             self.joint_vel_last_last = torch.clone(self.joint_vel_last)
             self.joint_vel_last = torch.clone(self.joint_vel)
-            return torques
+        elif control_type == "P":
+            torques = self.p_gains * self.Kp_factors * (
+                    self.joint_pos_target - self.dof_pos + self.motor_offsets) - self.d_gains * self.Kd_factors * self.dof_vel
         else:
-            # pd controller
-            return super()._compute_torques(actions)    
+            raise NameError(f"Unknown controller type: {control_type}")
+
+        torques = torques * self.motor_strengths
+        return torch.clip(torques, -self.torque_limits, self.torque_limits)
