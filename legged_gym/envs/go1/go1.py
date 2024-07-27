@@ -66,7 +66,7 @@ class Go1(LeggedRobot):
         rigid_body_state = self.gym.acquire_rigid_body_state_tensor(self.sim)
         self.rigid_body_states = gymtorch.wrap_tensor(rigid_body_state)
         self.gym.refresh_rigid_body_state_tensor(self.sim)
-        
+
         self.feet_pos = self.rigid_body_states.view(self.num_envs, self.num_bodies, 13)[:, self.feet_indices, 0:3]
         self.feet_vel = self.rigid_body_states.view(self.num_envs, self.num_bodies, 13)[:, self.feet_indices, 7:10]
 
@@ -133,7 +133,7 @@ class Go1(LeggedRobot):
             self.joint_vel_last = torch.clone(self.joint_vel)
         elif control_type == "P":
             torques = self.p_gains * (
-                    self.joint_pos_target - self.dof_pos) - self.d_gains * self.Kd_factors * self.dof_vel
+                    self.joint_pos_target - self.dof_pos) - self.d_gains * self.dof_vel
         else:
             raise NameError(f"Unknown controller type: {control_type}")
 
