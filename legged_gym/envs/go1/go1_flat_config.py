@@ -41,6 +41,10 @@ class Go1FlatCfg( Go1RoughCfg ):
     class asset( Go1RoughCfg.asset ):
         self_collisions = 0 # 1 to disable, 0 to enable...bitwise filter
 
+    class control( Go1RoughCfg.control ):
+        use_actuator_network = True
+        actuator_net_file = "{LEGGED_GYM_ROOT_DIR}/resources/actuator_nets/unitree_go1.pt"
+
     class rewards( Go1RoughCfg.rewards ):
         max_contact_force = 350.
         class scales ( Go1RoughCfg.rewards.scales ):
