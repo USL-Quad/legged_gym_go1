@@ -112,7 +112,7 @@ class Go1(LeggedRobot):
         control_type = self.cfg.control.control_type
 
         if control_type == "actuator_net":
-            self.joint_pos_err = self.dof_pos - self.joint_pos_target + self.motor_offsets
+            self.joint_pos_err = self.dof_pos - self.joint_pos_target
             self.joint_vel = self.dof_vel
             torques = self.actuator_network(self.joint_pos_err, self.joint_pos_err_last, self.joint_pos_err_last_last,
                                             self.joint_vel, self.joint_vel_last, self.joint_vel_last_last)
@@ -121,10 +121,10 @@ class Go1(LeggedRobot):
             self.joint_vel_last_last = torch.clone(self.joint_vel_last)
             self.joint_vel_last = torch.clone(self.joint_vel)
         elif control_type == "P":
-            torques = self.p_gains * self.Kp_factors * (
-                    self.joint_pos_target - self.dof_pos + self.motor_offsets) - self.d_gains * self.Kd_factors * self.dof_vel
+            torques = self.p_gains * (
+                    self.joint_pos_target - self.dof_pos) - self.d_gains * self.Kd_factors * self.dof_vel
         else:
             raise NameError(f"Unknown controller type: {control_type}")
 
-        torques = torques * self.motor_strengths
+        torques = torques
         return torch.clip(torques, -self.torque_limits, self.torque_limits)
