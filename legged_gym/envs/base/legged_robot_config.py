@@ -40,6 +40,52 @@ class LeggedRobotCfg(BaseConfig):
         send_timeouts = True # send time out information to the algorithm
         episode_length_s = 20 # episode length in seconds
 
+        # ----------- Basic Observation ------------
+        ## gravity + dof_pos + dof_vel + action= 3 + 12 + 12 + 12 = 39
+        ##
+        observe_command = True #! 15
+        observe_two_prev_actions = True #! 24
+        observe_timing_parameter = False
+        observe_clock_inputs = True #! 4 
+        observe_vel = True #! 6
+        observe_only_ang_vel = False
+        observe_only_lin_vel = False
+        observe_yaw = False
+        observe_contact_states = False
+        observe_foot_in_base = False
+
+
+        # ---------- Privileged Observations ----------
+        num_privileged_obs = 2
+        privileged_future_horizon = 1
+        priv_observe_friction = True 
+        priv_observe_friction_indep = False # not implemented
+        priv_observe_ground_friction = False # not implemented
+        priv_observe_ground_friction_per_foot = False # not implemented
+        priv_observe_restitution = True
+        priv_observe_base_mass = False
+        priv_observe_com_displacement = False
+        priv_observe_motor_strength = False
+        priv_observe_motor_offset = False
+        priv_observe_joint_friction = False
+        priv_observe_Kp_factor = False
+        priv_observe_Kd_factor = False
+        priv_observe_contact_forces = False
+        priv_observe_contact_states = False
+        priv_observe_body_velocity = False
+        priv_observe_foot_height = False
+        priv_observe_body_height = False
+        priv_observe_gravity = False
+        priv_observe_terrain_type = False
+        priv_observe_clock_inputs = False
+        priv_observe_doubletime_clock_inputs = False
+        priv_observe_halftime_clock_inputs = False
+        priv_observe_desired_contact_states = False
+        priv_observe_dummy_variable = False
+        
+        observe_height_command = False
+        observe_gait_commands = True 
+
     class terrain:
         mesh_type = 'trimesh' # "heightfield" # none, plane, heightfield or trimesh
         horizontal_scale = 0.1 # [m]
